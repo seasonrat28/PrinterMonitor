@@ -215,7 +215,7 @@ const PrinterCard = ({ printer, handleRefresh, handleDelete, refreshing, deletin
         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
           <div><span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{printer.page_count?.toLocaleString() || 0}</span> pages</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-            อัปเดตล่าสุด: {new Date(printer.last_update + (printer.last_update.endsWith('Z') ? '' : 'Z')).toLocaleTimeString('th-TH')}
+            อัปเดตล่าสุด: {printer.last_update ? new Date(printer.last_update).toLocaleTimeString('th-TH') : 'ไม่เคยอัปเดต'}
           </div>
         </div>
         

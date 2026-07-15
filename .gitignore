@@ -8,6 +8,7 @@ frontend/dist/
 # Added for cleanup
 backend/.env
 database/*.db
+backend/database/*.db
 logs/
 uploads/
 backup/

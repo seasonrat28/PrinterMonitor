@@ -22,5 +22,10 @@ SNMP_PORT = int(os.getenv("SNMP_PORT", "161"))
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "180"))
 STATUS_POLL_INTERVAL = int(os.getenv("STATUS_POLL_INTERVAL", "30"))
 DEFAULT_NETWORK = os.getenv("DEFAULT_NETWORK", "10.119.35")
+
+# รองรับหลายวงเครือข่าย คั่นด้วย , เช่น "10.119.34,10.119.35,10.119.43"
+_networks_raw = os.getenv("DEFAULT_NETWORKS", DEFAULT_NETWORK)
+DEFAULT_NETWORKS = [n.strip() for n in _networks_raw.split(",") if n.strip()]
+
 SCAN_START = int(os.getenv("SCAN_START", "1"))
 SCAN_END = int(os.getenv("SCAN_END", "254"))

@@ -17,6 +17,7 @@ class Printer(Base):
 
     location = Column(String(100))
     department = Column(String(100))
+    network = Column(String(50), index=True)  # เช่น "10.119.34" ใช้แยกหมวดหมู่ตามวงที่สแกนเจอ
 
     status = Column(String(50), default="Unknown")
     online = Column(Boolean, default=False)
@@ -48,10 +49,6 @@ class Printer(Base):
     # สถานะเครื่อง
     printer_status = Column(String(100), default="Ready")
     error_code = Column(String(100), default="")
-    
-    # ข้อผิดพลาดล่าสุดและจำนวนกระดาษติด
-    last_error = Column(String(255), default="")
-    paper_jam_count = Column(Integer, default=0)
 
     # เวลาที่พบเครื่องล่าสุด
     last_seen = Column(DateTime, default=datetime.utcnow)

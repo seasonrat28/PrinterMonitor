@@ -3,16 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import APP_NAME
 from app.database.init_db import init_database
-from app.core.logging_config import configure_logging
 
 from app.routers.scanner import router as scanner_router
 from app.routers.printer import router as printer_router
 from app.routers.dashboard import router as dashboard_router
 
 from app.services.scheduler import start_scheduler
-
-# Configure logging early
-configure_logging()
 
 app = FastAPI(
     title=APP_NAME,

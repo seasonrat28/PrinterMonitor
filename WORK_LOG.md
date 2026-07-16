@@ -1,6 +1,17 @@
 # บันทึกการปรับปรุง PrinterMonitor
 
-อัปเดตล่าสุด: 12 กรกฎาคม 2026
+อัปเดตล่าสุด: 16 กรกฎาคม 2026
+
+## อัปเดต 16 กรกฎาคม 2026
+
+| ส่วน | รายการที่เปลี่ยน | ไฟล์ |
+| --- | --- | --- |
+| แก้ข้อมูลผิด | เอา hack เฉพาะรุ่น "4620" ที่เอาค่า toner_black ไปทับ drum_unit และบังคับ is_color=False ออก ให้ใช้ค่าที่อ่านจาก SNMP จริงเท่านั้น | `backend/app/services/printer_info.py` |
+| Real-time | job ที่รันทุก 30 วิ เปลี่ยนจากเช็คแค่ Online/Offline เป็นดึงข้อมูลเต็ม (toner/page count/status) ของเครื่องที่มีอยู่แล้วด้วย ไม่ต้องรอ full scan ทุก 180 วิ | `backend/app/services/monitor_service.py` |
+| หลายวงเครือข่าย | รองรับสแกนหลายวงพร้อมกัน (`DEFAULT_NETWORKS` คั่นด้วย ,) และบันทึกว่าเครื่องแต่ละเครื่องมาจากวงไหน (`network` column ใหม่) พร้อม auto-migration ให้ database เดิมไม่ต้องลบทิ้ง | `backend/app/models/printer.py`, `backend/app/database/init_db.py`, `backend/app/core/config.py`, `backend/app/services/scan_service.py`, `backend/app/services/scheduler.py`, `backend/app/routers/scanner.py`, `backend/.env` |
+| หน้าเว็บ | ช่องค้นหาเครือข่ายกรอกได้หลายวงคั่นด้วย , และเพิ่มตัวกรอง "วงเครือข่าย" ในหน้า All Printers (รวมถึงใน Search และ CSV Export) | `frontend/src/pages/Printers.jsx` |
+
+ตรวจสอบแล้ว: syntax ฝั่ง backend ผ่านหมด (`py_compile` + import จริงทั้งแอป), ทดสอบ auto-migration บน DB จำลองแบบ schema เก่าว่าเพิ่มคอลัมน์ได้โดยไม่ลบข้อมูล, และ parse JSX ของ `Printers.jsx` ผ่าน (บิ้ลด์ vite เต็มรูปแบบไม่ได้เพราะเครื่องที่ใช้แก้โค้ดนี้ไม่มี native binding ของ rolldown สำหรับ Linux — ไม่เกี่ยวกับโค้ดที่แก้ ให้ลองบิ้ลด์อีกทีบนเครื่องที่ตั้งค่า dev environment ไว้แล้ว)
 
 ## เป้าหมาย
 

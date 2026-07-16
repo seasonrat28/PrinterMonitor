@@ -1,12 +1,11 @@
 import datetime
-import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.db.session import SessionLocal
-from app.services.scan_service import scan_and_save
+from app.services.scan_service import scan_and_save_multi
 from app.services.monitor_service import refresh_printer_statuses
 from app.core.config import (
-    DEFAULT_NETWORK,
+    DEFAULT_NETWORKS,
     POLL_INTERVAL,
     SCAN_END,
     SCAN_START,
@@ -14,23 +13,22 @@ from app.core.config import (
 )
 
 scheduler = BackgroundScheduler()
-logger = logging.getLogger(__name__)
 
 
 def auto_scan():
-    if not DEFAULT_NETWORK:
+    if not DEFAULT_NETWORKS:
         return
 
     db = SessionLocal()
 
     try:
-        logger.info("%s", "=" * 50)
-        logger.info("AUTO SCAN START")
+        print("=" * 50)
+        print(f"AUTO SCAN START ({', '.join(DEFAULT_NETWORKS)})")
 
-        scan_and_save(db, DEFAULT_NETWORK, SCAN_START, SCAN_END)
+        scan_and_save_multi(db, DEFAULT_NETWORKS, SCAN_START, SCAN_END)
 
-        logger.info("AUTO SCAN END")
-        logger.info("%s", "=" * 50)
+        print("AUTO SCAN END")
+        print("=" * 50)
 
     finally:
         db.close()
@@ -64,4 +62,4 @@ def start_scheduler():
 
     scheduler.start()
 
-    logger.info("Scheduler Started")
+    print("Scheduler Started")

@@ -1,333 +1,170 @@
 import React, { useEffect, useState } from 'react';
-import { getDashboardSummary, getPrinters } from '../services/api';
-import { useFavorites } from '../hooks/useFavorites';
+import { getDashboardSummary } from '../services/api';
+import { Server, CheckCircle, XCircle, AlertTriangle, Droplets, Wifi } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const Dashboard = () => {
-  const [summary, setSummary] = useState(null);
-  const [printers, setPrinters] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { favorites } = useFavorites();
+const TonerMini = ({ level, color }) => {
+  const colors = { k: '#64748B', c: '#06B6D4', m: '#EC4899', y: '#EAB308' };
+  const bg = colors[color] || '#64748B';
+  const pct = Math.max(0, Math.min(100, level ?? 0));
+  const isLow = pct < 20;
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 22 }}>
+      <span style={{ fontSize: '0.6rem', color: isLow ? '#F87171' : 'var(--text-muted)', fontWeight: 600 }}>{pct}%</span>
+      <span style={{
+        width: 12, height: 36, borderRadius: 4, background: 'rgba(255,255,255,0.08)',
+        display: 'flex', alignItems: 'flex-end', overflow: 'hidden'
+      }}>
+        <span style={{
+          width: '100%', height: `${pct}%`, background: isLow ? '#EF4444' : bg,
+          transition: 'height 0.4s', borderRadius: 4
+        }} />
+      </span>
+      <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{color}</span>
+    </span>
+  );
+};
 
-  const loadData = async () => {
+const Dashboard = () => {
+  const [summary, setSummary] = useState({
+    total: 0, online: 0, offline: 0, apeos4620: 0,
+    low_toner: 0, recent_printers: [], low_toner_printers: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSummary();
+    const timer = setInterval(fetchSummary, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const fetchSummary = async () => {
     try {
-      setLoading(true);
-      const [summaryData, printersData] = await Promise.all([getDashboardSummary(), getPrinters()]);
-      setSummary(summaryData);
-      setPrinters(printersData || []);
+      const data = await getDashboardSummary();
+      setSummary(data);
     } catch (error) {
-      console.error('Failed to load dashboard', error);
+      console.error('Failed to fetch dashboard summary:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 30000); // 30s
-    return () => clearInterval(timer);
-  }, []);
-
-  const lowToner = summary?.low_toner_printers || [];
-  const recentPrinters = summary?.recent_printers || [];
-  
-  // Averages for Toner Utilization Decay
-  const avgBlack = Math.round(printers.reduce((acc, p) => acc + (p.toner_black ?? 100), 0) / (printers.length || 1));
-  const avgCyan = Math.round(printers.reduce((acc, p) => acc + (p.toner_cyan ?? 100), 0) / (printers.length || 1));
-  const avgMagenta = Math.round(printers.reduce((acc, p) => acc + (p.toner_magenta ?? 100), 0) / (printers.length || 1));
-  const avgYellow = Math.round(printers.reduce((acc, p) => acc + (p.toner_yellow ?? 100), 0) / (printers.length || 1));
-  const overallAvg = Math.round((avgBlack + avgCyan + avgMagenta + avgYellow) / 4);
-
-  // Priority Watchlist
-  let priorityList = printers.filter(p => favorites.includes(p.ip_address));
-  if (priorityList.length === 0) {
-    priorityList = printers.slice(0, 4); // Fallback to first 4
-  } else {
-    priorityList = priorityList.slice(0, 4);
-  }
-
-  const getTimeAgo = (dateStr) => {
-    if (!dateStr) return '-';
-    const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
-  };
-
-  if (loading && !summary) {
-    return <div className="text-center text-on-surface-variant font-label-mono mt-xl">INITIALIZING PRINTERMONITOR...</div>;
-  }
+  const statCards = [
+    { label: 'Total Printers', value: summary.total, icon: <Server size={22} />, color: 'var(--info)' },
+    { label: 'Online', value: summary.online, icon: <CheckCircle size={22} />, color: 'var(--success)' },
+    { label: 'Offline', value: summary.offline, icon: <XCircle size={22} />, color: 'var(--danger)' },
+    { label: 'Toner Warning', value: summary.low_toner, icon: <Droplets size={22} />, color: '#F59E0B' },
+  ];
 
   return (
-    <div className="space-y-lg">
-      
-      {/* 1. Top-Level Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-gutter">
-        
-        {/* Total Printers */}
-        <div className="glass-panel p-lg rounded-xl flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-4">
-            <span className="material-symbols-outlined text-primary-container p-2 bg-primary/10 rounded-lg">print</span>
-            <span className="font-label-micro text-label-micro bg-primary/10 text-primary-fixed px-2 py-1 rounded">FLEET</span>
-          </div>
-          <div>
-            <p className="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-widest mb-1">Total Printers</p>
-            <div className="flex items-baseline gap-sm">
-              <span className="text-4xl font-bold font-display-lg text-primary">{summary?.total ?? 0}</span>
-              <span className="font-label-mono text-label-mono text-on-surface-variant">units</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Online Now */}
-        <div className="glass-panel p-lg rounded-xl flex flex-col justify-between scanline-effect relative">
-          <div className="flex justify-between items-start mb-4 relative z-20">
-            <span className="material-symbols-outlined text-secondary-container p-2 bg-secondary/10 rounded-lg">router</span>
-            <div className="flex items-center gap-1 text-secondary-container">
-              <span className="material-symbols-outlined text-[14px]">trending_up</span>
-            </div>
-          </div>
-          <div className="relative z-20">
-            <p className="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-widest mb-1">Online Now</p>
-            <div className="flex items-baseline gap-sm">
-              <span className="text-4xl font-bold font-display-lg text-secondary-container">{summary?.online ?? 0}</span>
-              <span className="font-label-mono text-label-mono text-secondary-container/60">ACTIVE</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Offline Units */}
-        <div className="glass-panel p-lg rounded-xl flex flex-col justify-between neon-glow-error border-error/20">
-          <div className="flex justify-between items-start mb-4">
-            <span className="material-symbols-outlined text-error p-2 bg-error/10 rounded-lg">warning</span>
-            <span className="font-label-micro text-label-micro bg-error/20 text-error px-2 py-1 rounded">ALERT</span>
-          </div>
-          <div>
-            <p className="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-widest mb-1">Offline Units</p>
-            <div className="flex items-baseline gap-sm">
-              <span className="text-4xl font-bold font-display-lg text-error">{summary?.offline ?? 0}</span>
-              <span className="font-label-mono text-label-mono text-error/60">CRITICAL</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Low Toner */}
-        <div className="glass-panel p-lg rounded-xl flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-4">
-            <span className="material-symbols-outlined text-tertiary-container p-2 bg-tertiary/10 rounded-lg">format_color_fill</span>
-            <span className="font-label-micro text-label-micro bg-tertiary/10 text-tertiary px-2 py-1 rounded">SUPPLIES</span>
-          </div>
-          <div>
-            <p className="font-label-mono text-label-mono text-on-surface-variant uppercase tracking-widest mb-1">Low Toner Alerts</p>
-            <div className="flex items-baseline gap-sm">
-              <span className="text-4xl font-bold font-display-lg text-tertiary">{summary?.low_toner ?? 0}</span>
-              <span className="font-label-mono text-label-mono text-tertiary/60">REFILL</span>
-            </div>
-          </div>
-        </div>
-
+    <div>
+      <div className="page-header">
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">Overview of all printers in the network — auto-refreshes every 15 seconds.</p>
       </div>
 
-      {/* 2. Central Analytical Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-gutter">
-        {/* Page Count Trend */}
-        <div className="glass-panel rounded-xl p-lg flex flex-col h-[380px]">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="font-headline-md text-[18px] text-on-surface font-semibold flex items-center gap-sm">
-                <span className="material-symbols-outlined text-primary">insights</span>
-                Page Count Trend
-              </h3>
-              <p className="text-label-micro text-on-surface-variant uppercase tracking-widest">System-wide Print Volume</p>
-            </div>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 text-label-mono text-label-micro bg-primary/10 text-primary-fixed rounded">7D</button>
-              <button className="px-3 py-1 text-label-mono text-label-micro hover:bg-surface-container-highest rounded transition-colors">30D</button>
-            </div>
-          </div>
-          <div className="flex-1 w-full chart-grid relative rounded-lg border border-glass-border flex items-end p-4 gap-4 overflow-hidden">
-            <svg className="absolute inset-0 w-full h-full p-4" viewBox="0 0 400 100" preserveAspectRatio="none">
-              <path d="M0 80 Q 50 70, 100 85 T 200 40 T 300 60 T 400 20" fill="none" stroke="#adc7ff" strokeWidth="2" className="drop-shadow-[0_0_8px_rgba(173,199,255,0.4)]"></path>
-              <path d="M0 80 Q 50 70, 100 85 T 200 40 T 300 60 T 400 20 L 400 100 L 0 100 Z" fill="url(#grad1)" opacity="0.1"></path>
-              <defs>
-                <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#adc7ff', stopOpacity: 1 }}></stop>
-                  <stop offset="100%" style={{ stopColor: '#adc7ff', stopOpacity: 0 }}></stop>
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute bottom-2 left-4 right-4 flex justify-between text-label-micro text-on-surface-variant/40 font-label-mono">
-              <span>DAY 1</span><span>DAY 3</span><span>DAY 5</span><span>TODAY</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Toner Utilization Decay */}
-        <div className="glass-panel rounded-xl p-lg flex flex-col h-[380px]">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="font-headline-md text-[18px] text-on-surface font-semibold flex items-center gap-sm">
-                <span className="material-symbols-outlined text-secondary-container">bar_chart_4_bars</span>
-                Toner Utilization Decay
-              </h3>
-              <p className="text-label-micro text-on-surface-variant uppercase tracking-widest">Aggregate Consumable Lifecycle</p>
-            </div>
-            <span className="text-label-mono text-label-micro text-secondary-container bg-secondary-container/10 px-2 py-1 rounded">
-              AVG {overallAvg}%
-            </span>
-          </div>
-          <div className="flex-1 flex flex-col justify-between chart-grid p-4 border border-glass-border rounded-lg">
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="flex justify-between text-label-mono text-label-micro uppercase">
-                  <span className="text-on-surface">Black (K)</span>
-                  <span className="text-on-surface-variant">{avgBlack}%</span>
+      {loading ? (
+        <div style={{ color: 'var(--text-muted)' }}>Loading...</div>
+      ) : (
+        <>
+          {/* ── Stat Cards ── */}
+          <div className="stats-grid">
+            {statCards.map(card => (
+              <div className="glass-card stat-card" key={card.label}>
+                <div className="stat-header">
+                  <span>{card.label}</span>
+                  <div className="stat-icon" style={{ color: card.color }}>{card.icon}</div>
                 </div>
-                <div className="h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                  <div className="h-full bg-on-surface" style={{ width: `${avgBlack}%` }}></div>
+                <div className="stat-value" style={{ color: card.value > 0 && card.label === 'Toner Warning' ? '#F59E0B' : undefined }}>
+                  {card.value}
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-label-mono text-label-micro uppercase">
-                  <span className="text-secondary-container">Cyan (C)</span>
-                  <span className="text-on-surface-variant">{avgCyan}%</span>
-                </div>
-                <div className="h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                  <div className="h-full bg-secondary-container" style={{ width: `${avgCyan}%` }}></div>
-                </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
+
+            {/* ── Recent Online Printers ── */}
+            <div className="glass-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <Wifi size={18} style={{ color: 'var(--success)' }} />
+                <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>Recent Online Printers</h3>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-label-mono text-label-micro uppercase">
-                  <span className="text-error">Magenta (M)</span>
-                  <span className="text-on-surface-variant">{avgMagenta}%</span>
-                </div>
-                <div className="h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                  <div className="h-full bg-error" style={{ width: `${avgMagenta}%` }}></div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-label-mono text-label-micro uppercase">
-                  <span className="text-tertiary">Yellow (Y)</span>
-                  <span className="text-on-surface-variant">{avgYellow}%</span>
-                </div>
-                <div className="h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                  <div className="h-full bg-tertiary" style={{ width: `${avgYellow}%` }}></div>
-                </div>
-              </div>
+
+              {summary.recent_printers.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem 0' }}>No printers online yet.</p>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {['IP Address', 'Model', 'Pages', 'Toner'].map(h => (
+                        <th key={h} style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', borderBottom: '1px solid var(--card-border)' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.recent_printers.map(p => (
+                      <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td style={{ padding: '0.6rem 0.75rem', fontWeight: 500, fontSize: '0.85rem' }}>
+                          <Link to={`/printers/${p.id}`} style={{ color: 'var(--info)', textDecoration: 'none' }}>{p.ip_address}</Link>
+                        </td>
+                        <td style={{ padding: '0.6rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{p.model}</td>
+                        <td style={{ padding: '0.6rem 0.75rem', fontSize: '0.85rem' }}>{(p.page_count ?? 0).toLocaleString()}</td>
+                        <td style={{ padding: '0.6rem 0.75rem' }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
+                            <TonerMini level={p.toner_black} color="k" />
+                            <TonerMini level={p.toner_cyan} color="c" />
+                            <TonerMini level={p.toner_magenta} color="m" />
+                            <TonerMini level={p.toner_yellow} color="y" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-            <p className="text-label-micro text-on-surface-variant italic mt-4">Real-time depletion estimate across all active units.</p>
-          </div>
-        </div>
-      </div>
 
-      {/* 3. Summary Section (Recent Logs & Alerts) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
-        {/* Recent Scanned Devices */}
-        <div className="lg:col-span-2 glass-panel rounded-xl overflow-hidden flex flex-col">
-          <div className="px-lg py-md border-b border-glass-border flex items-center justify-between">
-            <h3 className="font-headline-md text-[18px] text-on-surface font-semibold flex items-center gap-sm">
-              <span className="material-symbols-outlined text-primary">history</span>
-              Recent Scan Activity
-            </h3>
-            <Link to="/printers" className="text-label-mono font-label-mono text-primary-container text-label-micro hover:underline transition-all">ALL LOGS</Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <tbody className="divide-y divide-glass-border">
-                {recentPrinters.length > 0 ? recentPrinters.map(p => (
-                  <tr key={p.id} className="hover:bg-primary/5 transition-colors cursor-pointer">
-                    <td className="px-lg py-4 font-body-base text-on-surface font-medium text-sm truncate max-w-[150px]">
-                      {p.model || p.hostname || 'Unknown Device'}
-                    </td>
-                    <td className="px-lg py-4 font-label-mono text-label-micro text-on-surface-variant">
-                      {p.ip_address}
-                    </td>
-                    <td className="px-lg py-4">
-                      {p.online ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary-container/20 text-secondary-container text-label-micro font-label-micro uppercase">Online</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error/20 text-error text-label-micro font-label-micro uppercase">Offline</span>
-                      )}
-                    </td>
-                    <td className="px-lg py-4 font-label-mono text-label-micro text-on-surface-variant text-right">
-                      {getTimeAgo(p.last_update)}
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan="4" className="px-lg py-8 text-center text-on-surface-variant font-label-mono">No recent activity detected.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Critical Supply Alerts */}
-        <div className="glass-panel rounded-xl flex flex-col">
-          <div className="px-lg py-md border-b border-glass-border">
-            <h3 className="font-headline-md text-[18px] text-on-surface font-semibold flex items-center gap-sm">
-              <span className="material-symbols-outlined text-error">notification_important</span>
-              Urgent Supplies
-            </h3>
-          </div>
-          <div className="p-lg space-y-4 max-h-[300px] overflow-y-auto">
-            {lowToner.length > 0 ? lowToner.slice(0, 4).map(p => {
-              const colors = [
-                { name: 'Black (K)', val: p.toner_black ?? 100, class: 'text-on-surface' },
-                { name: 'Cyan (C)', val: p.toner_cyan ?? 100, class: 'text-secondary-container' },
-                { name: 'Magenta (M)', val: p.toner_magenta ?? 100, class: 'text-error' },
-                { name: 'Yellow (Y)', val: p.toner_yellow ?? 100, class: 'text-tertiary' }
-              ];
-              const lowest = colors.reduce((prev, curr) => curr.val < prev.val ? curr : prev, colors[0]);
-              
-              return (
-                <div key={p.id} className="bg-surface-container/30 border border-glass-border rounded-lg p-md flex items-center gap-md">
-                  <div className="flex-1">
-                    <p className="font-body-base text-on-surface font-bold text-sm truncate w-[140px]">{p.model || p.hostname}</p>
-                    <p className={`font-label-mono text-[10px] uppercase ${lowest.class}`}>{lowest.name} @ {lowest.val}%</p>
-                  </div>
-                  <button className="bg-primary text-on-primary font-label-mono text-[10px] px-3 py-2 rounded font-bold hover:bg-primary-fixed transition-colors">ORDER</button>
-                </div>
-              );
-            }) : (
-              <div className="text-center text-on-surface-variant font-label-mono py-8">All supplies are optimal.</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Priority Watchlist */}
-      <div className="space-y-md">
-        <div className="flex items-center justify-between">
-          <h3 className="font-headline-md text-[18px] text-on-surface font-semibold">Priority Watchlist</h3>
-          <span className="font-label-mono text-label-micro text-on-surface-variant">{priorityList.length} DEVICES PINNED</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md">
-          {priorityList.map(p => {
-            const isError = !p.online || (p.printer_status && p.printer_status.toLowerCase().includes('error'));
-            return (
-              <div key={p.id} className={`glass-panel p-md rounded-xl hover:translate-y-[-4px] transition-all cursor-pointer ${isError ? 'border-error/20' : ''}`}>
-                <div className="flex justify-between items-start mb-3">
-                  <span className={`material-symbols-outlined text-[20px] ${isError ? 'text-error' : 'text-primary'}`}>
-                    {isError ? 'report' : 'print'}
-                  </span>
-                  <div className={`w-2 h-2 rounded-full ${isError ? 'bg-error' : 'bg-secondary-container'} ${isError ? '' : 'animate-pulse'}`}></div>
-                </div>
-                <p className="text-on-surface font-bold text-sm truncate">{p.model || p.hostname || 'Unknown'}</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[10px] font-label-mono text-on-surface-variant">{p.ip_address}</span>
-                  <span className={`text-[10px] font-label-mono ${isError ? 'text-error' : 'text-secondary-container'}`}>
-                    {isError ? 'ERROR' : 'READY'}
-                  </span>
-                </div>
+            {/* ── Toner Alerts ── */}
+            <div className="glass-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <AlertTriangle size={18} style={{ color: '#F59E0B' }} />
+                <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>Toner Alerts <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>(below 20%)</span></h3>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
+              {summary.low_toner_printers.length === 0 ? (
+                <p style={{ color: 'var(--success)', textAlign: 'center', padding: '1.5rem 0', fontWeight: 500 }}>✓ All toner levels are OK</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {summary.low_toner_printers.map(p => {
+                    const alerts = [
+                      p.toner_black < 20 && { label: 'Black', val: p.toner_black, color: '#64748B' },
+                      p.toner_cyan < 20 && { label: 'Cyan', val: p.toner_cyan, color: '#06B6D4' },
+                      p.toner_magenta < 20 && { label: 'Magenta', val: p.toner_magenta, color: '#EC4899' },
+                      p.toner_yellow < 20 && { label: 'Yellow', val: p.toner_yellow, color: '#EAB308' },
+                    ].filter(Boolean);
+                    return (
+                      <div key={p.id} style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 10, padding: '0.75rem 1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <Link to={`/printers/${p.id}`} style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)', textDecoration: 'none' }}>{p.ip_address}</Link>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{p.model}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {alerts.map(a => (
+                            <span key={a.label} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '0.2rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#F87171' }}>
+                              {a.label}: {a.val}%
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

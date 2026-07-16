@@ -92,20 +92,21 @@ const Scanner = () => {
       const rect = mapRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      mapRef.current.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(173, 199, 255, 0.05) 0%, transparent 60%)`;
+      mapRef.current.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(79, 134, 247, 0.05) 0%, transparent 60%)`;
     }
   };
 
   return (
-    <div className="max-w-[1440px] mx-auto space-y-lg relative z-10 pb-md">
+    <div className="flex-col gap-lg pb-md relative z-10" style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '2rem' }}>
       {/* Network Targeting Controls */}
-      <section className="glass-panel rounded-xl p-md flex flex-wrap md:flex-nowrap items-end gap-md relative z-20">
-        <div className="w-full md:w-64 space-y-xs">
-          <label className="font-label-mono text-[10px] text-primary uppercase tracking-widest block">ช่วง IP สำหรับการสแกน</label>
+      <section className="glass-panel p-md flex-row flex-wrap gap-md relative z-20" style={{ alignItems: 'flex-end' }}>
+        <div className="flex-col gap-xs" style={{ width: '100%', maxWidth: '250px' }}>
+          <label className="text-micro text-accent" style={{ color: 'var(--accent-primary)' }}>IP Range (ช่วง IP)</label>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 text-base">settings_ethernet</span>
+            <span className="material-symbols-outlined absolute text-muted" style={{ left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}>settings_ethernet</span>
             <input 
-              className="w-full bg-surface-container-lowest border-none rounded-lg py-2 pl-10 pr-3 font-label-mono text-base text-on-surface focus:ring-2 focus:ring-primary/30 transition-all" 
+              className="input-field text-mono" 
+              style={{ paddingLeft: '2.5rem', background: 'rgba(0,0,0,0.3)' }}
               type="text" 
               value={network}
               onChange={(e) => setNetwork(e.target.value)}
@@ -113,110 +114,111 @@ const Scanner = () => {
             />
           </div>
         </div>
-        <div className="w-full md:w-64 space-y-xs">
-          <label className="font-label-mono text-[10px] text-primary uppercase tracking-widest block">Subnet Mask</label>
-          <select className="w-full bg-surface-container-lowest border-none rounded-lg py-2 px-3 font-label-mono text-base text-on-surface focus:ring-2 focus:ring-primary/30 transition-all appearance-none cursor-pointer">
+        <div className="flex-col gap-xs" style={{ width: '100%', maxWidth: '250px' }}>
+          <label className="text-micro text-accent" style={{ color: 'var(--accent-primary)' }}>Subnet Mask</label>
+          <select className="input-field text-mono" style={{ background: 'rgba(0,0,0,0.3)', appearance: 'none', cursor: 'pointer' }}>
             <option>255.255.255.0 (/24)</option>
             <option>255.255.0.0 (/16)</option>
           </select>
         </div>
         <button 
-          className={`h-10 px-lg font-bold rounded-lg flex items-center justify-center gap-sm transition-all ${isScanning ? 'bg-error-container text-on-error-container' : 'bg-primary text-on-primary hover:shadow-[0_0_20px_rgba(173,199,255,0.4)] active:scale-95'}`}
+          className="btn text-mono text-micro"
+          style={{ 
+            height: '42px', 
+            background: isScanning ? 'var(--status-offline)' : 'var(--accent-primary)',
+            color: '#fff',
+            boxShadow: isScanning ? 'none' : '0 4px 14px 0 rgba(79, 134, 247, 0.39)'
+          }}
           onClick={startScan}
         >
-          <span className="material-symbols-outlined text-base">{isScanning ? 'stop' : 'radar'}</span>
-          <span className="font-label-mono text-xs uppercase tracking-widest">{isScanning ? 'ยกเลิกการสแกน' : 'เริ่มการสแกนตอนนี้'}</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{isScanning ? 'stop' : 'radar'}</span>
+          {isScanning ? 'ยกเลิกการสแกน' : 'เริ่มการสแกนตอนนี้'}
         </button>
       </section>
 
       {/* Radar Visualization */}
-      <section className="grid grid-cols-12 gap-lg h-[450px]">
-        <div 
-          className="col-span-12 glass-panel rounded-xl relative overflow-hidden flex items-center justify-center group"
-          ref={mapRef}
-          onMouseMove={handleMouseMove}
-        >
-          {/* Radar Rings */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-[700px] h-[700px] border border-primary/40 rounded-full"></div>
-              <div className="w-[500px] h-[500px] border border-primary/40 rounded-full"></div>
-              <div className="w-[300px] h-[300px] border border-primary/40 rounded-full"></div>
-              <div className="w-[100px] h-[100px] border border-primary/40 rounded-full"></div>
-              <div className="absolute w-1 h-[350px] bg-gradient-to-t from-primary/60 to-transparent radar-sweep"></div>
-            </div>
+      <section className="glass-panel relative overflow-hidden flex-center group" style={{ height: '450px', borderRadius: 'var(--radius-xl)' }} ref={mapRef} onMouseMove={handleMouseMove}>
+        {/* Radar Rings */}
+        <div className="absolute" style={{ top: 0, left: 0, right: 0, bottom: 0, opacity: 0.15, pointerEvents: 'none' }}>
+          <div className="absolute flex-center" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+            <div style={{ width: '700px', height: '700px', border: '1px solid var(--accent-primary)', borderRadius: '50%', position: 'absolute' }}></div>
+            <div style={{ width: '500px', height: '500px', border: '1px solid var(--accent-primary)', borderRadius: '50%', position: 'absolute' }}></div>
+            <div style={{ width: '300px', height: '300px', border: '1px solid var(--accent-primary)', borderRadius: '50%', position: 'absolute' }}></div>
+            <div style={{ width: '100px', height: '100px', border: '1px solid var(--accent-primary)', borderRadius: '50%', position: 'absolute' }}></div>
+            <div style={{ position: 'absolute', width: '2px', height: '350px', background: 'linear-gradient(to top, rgba(79, 134, 247, 0.8), transparent)', transformOrigin: 'bottom center', animation: 'spin 4s linear infinite', top: '50%', left: '50%', transform: 'translate(-50%, -100%)' }}></div>
           </div>
+        </div>
 
-          {/* Map Nodes */}
-          <div className="relative z-10 w-full h-full">
-            {/* Central Scanner Node */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-              <div className="w-16 h-16 bg-primary-container/30 border-2 border-primary rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(173,199,255,0.3)] relative">
-                <span className="material-symbols-outlined text-primary text-3xl">dns</span>
-                {isScanning && <div className="absolute inset-0 rounded-full bg-primary/20 ping-pulse"></div>}
-              </div>
-              <p className="mt-2 font-label-mono text-label-micro text-primary font-bold bg-surface-container-high px-2 py-0.5 rounded border border-glass-border">PRINTERMONITOR_SCANNER</p>
+        {/* Map Nodes */}
+        <div className="relative z-10 w-full h-full">
+          {/* Central Scanner Node */}
+          <div className="absolute flex-col flex-center" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+            <div className="flex-center relative" style={{ width: '64px', height: '64px', background: 'rgba(79, 134, 247, 0.2)', border: '2px solid var(--accent-primary)', borderRadius: '50%', boxShadow: '0 0 30px rgba(79, 134, 247, 0.3)' }}>
+              <span className="material-symbols-outlined icon-filled text-accent" style={{ fontSize: '32px' }}>dns</span>
+              {isScanning && <div className="absolute" style={{ top: 0, left: 0, right: 0, bottom: 0, borderRadius: '50%', background: 'rgba(79, 134, 247, 0.3)', animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }}></div>}
             </div>
-            
-            {/* Dynamic Map Dots */}
-            {mapDots.map(dot => (
-              <div key={dot.id} className="absolute opacity-50 hover:opacity-100 transition-opacity" style={{ left: dot.left, top: dot.top }}>
-                <div className="w-2 h-2 bg-primary rounded-full animate-ping shadow-[0_0_8px_#adc7ff]"></div>
-              </div>
-            ))}
+            <p className="text-mono text-micro text-accent mt-sm p-xs" style={{ background: 'rgba(10,10,15,0.8)', border: '1px solid var(--border-color)', borderRadius: '4px' }}>PRINTERMONITOR_SCANNER</p>
           </div>
-
-          {/* Overlay Status Info */}
-          <div className="absolute bottom-6 left-6 flex flex-col gap-sm">
-            <div className="flex items-center gap-sm bg-surface-container-highest/80 backdrop-blur px-md py-sm rounded-lg border border-glass-border">
-              <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-secondary-container shadow-[0_0_10px_#00f1fe] animate-pulse' : 'bg-outline'}`}></div>
-              <span className="font-label-mono text-label-micro uppercase">สถานะ: {isScanning ? 'กำลังสแกน...' : 'สแตนด์บาย'}</span>
+          
+          {/* Dynamic Map Dots */}
+          {mapDots.map(dot => (
+            <div key={dot.id} className="absolute transition-normal" style={{ left: dot.left, top: dot.top, opacity: 0.7 }}>
+              <div style={{ width: '8px', height: '8px', background: 'var(--accent-secondary)', borderRadius: '50%', animation: 'pulse 2s infinite', boxShadow: '0 0 10px var(--accent-secondary)' }}></div>
             </div>
-            {discoveredDevices.length > 0 && (
-              <div className="text-on-surface-variant font-label-mono text-label-micro px-1">
-                NODES FOUND: <span className="text-primary font-bold">{discoveredDevices.length}</span>
-              </div>
-            )}
+          ))}
+        </div>
+
+        {/* Overlay Status Info */}
+        <div className="absolute flex-col gap-sm" style={{ bottom: '1.5rem', left: '1.5rem' }}>
+          <div className="flex-row gap-sm p-sm" style={{ background: 'rgba(10, 10, 15, 0.8)', backdropFilter: 'blur(4px)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isScanning ? 'var(--accent-secondary)' : 'var(--text-muted)', boxShadow: isScanning ? '0 0 10px var(--accent-secondary)' : 'none', animation: isScanning ? 'pulse 2s infinite' : 'none' }}></div>
+            <span className="text-mono text-micro">สถานะ: {isScanning ? 'กำลังสแกน...' : 'สแตนด์บาย'}</span>
           </div>
+          {discoveredDevices.length > 0 && (
+            <div className="text-mono text-micro text-muted px-sm">
+              NODES FOUND: <span className="text-accent font-bold">{discoveredDevices.length}</span>
+            </div>
+          )}
+        </div>
 
-          <div className="absolute bottom-6 right-6 flex items-center gap-lg">
-            <div className="flex items-center gap-sm">
-              <span className="w-3 h-3 rounded-full bg-primary"></span>
-              <span className="font-label-mono text-label-micro">Found</span>
-            </div>
-            <div className="flex items-center gap-sm">
-              <span className="w-3 h-3 rounded-full bg-secondary-container animate-pulse"></span>
-              <span className="font-label-mono text-label-micro">Scanning</span>
-            </div>
-            <div className="flex items-center gap-sm">
-              <span className="w-3 h-3 rounded-full bg-outline"></span>
-              <span className="font-label-mono text-label-micro">Inactive</span>
-            </div>
+        <div className="absolute flex-row gap-lg" style={{ bottom: '1.5rem', right: '1.5rem' }}>
+          <div className="flex-row gap-sm">
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-primary)' }}></span>
+            <span className="text-mono text-micro">Found</span>
+          </div>
+          <div className="flex-row gap-sm">
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-secondary)', animation: 'pulse 2s infinite' }}></span>
+            <span className="text-mono text-micro">Scanning</span>
+          </div>
+          <div className="flex-row gap-sm">
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--text-muted)' }}></span>
+            <span className="text-mono text-micro">Inactive</span>
           </div>
         </div>
       </section>
 
       {/* Logs & Discovery */}
-      <section className="grid grid-cols-12 gap-lg">
+      <section className="grid grid-cols-2 gap-lg" style={{ marginTop: '2rem' }}>
         {/* Live Execution Logs */}
-        <div className="col-span-12 lg:col-span-5 glass-panel rounded-xl flex flex-col overflow-hidden h-[360px]">
-          <div className="bg-surface-container-high px-lg py-sm flex items-center justify-between border-b border-glass-border">
-            <span className="font-label-mono text-label-micro text-primary uppercase font-bold tracking-widest">Live Execution Logs</span>
-            <div className="flex gap-xs">
-              <div className={`w-1.5 h-1.5 rounded-full ${isScanning ? 'bg-primary/80 animate-pulse' : 'bg-primary/30'}`}></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-primary/30"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-primary/30"></div>
+        <div className="glass-panel flex-col" style={{ height: '360px', overflow: 'hidden' }}>
+          <div className="flex-between p-md" style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)' }}>
+            <span className="text-mono text-micro text-accent font-bold">Live Execution Logs</span>
+            <div className="flex-row gap-xs">
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isScanning ? 'var(--accent-primary)' : 'rgba(255,255,255,0.2)', animation: isScanning ? 'pulse 1.5s infinite' : 'none' }}></div>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }}></div>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }}></div>
             </div>
           </div>
-          <div ref={logContainerRef} className="flex-1 p-lg font-label-mono text-[12px] leading-relaxed space-y-1 overflow-y-auto bg-surface-lowest/50">
-            {logs.length === 0 && <p className="text-on-surface-variant italic opacity-50">System ready. Waiting for operator command...</p>}
+          <div ref={logContainerRef} className="flex-1 p-md text-mono" style={{ fontSize: '12px', lineHeight: '1.8', overflowY: 'auto', background: 'rgba(0,0,0,0.4)' }}>
+            {logs.length === 0 && <p className="text-muted" style={{ fontStyle: 'italic', opacity: 0.6 }}>System ready. Waiting for operator command...</p>}
             {logs.map((log, i) => {
-              let colorClass = 'text-on-surface-variant';
-              if (log.type === 'primary-bold') colorClass = 'text-primary font-bold';
-              else if (log.type === 'success') colorClass = 'text-secondary-container font-bold';
-              else if (log.type === 'error') colorClass = 'text-error font-bold';
+              let color = 'var(--text-secondary)';
+              let fw = 'normal';
+              if (log.type === 'primary-bold') { color = 'var(--accent-primary)'; fw = 'bold'; }
+              else if (log.type === 'success') { color = 'var(--status-online)'; fw = 'bold'; }
+              else if (log.type === 'error') { color = 'var(--status-offline)'; fw = 'bold'; }
               return (
-                <p key={i} className={colorClass}>
+                <p key={i} style={{ color, fontWeight: fw, marginBottom: '0.25rem' }}>
                   [{log.time}] {log.text}
                 </p>
               );
@@ -225,37 +227,41 @@ const Scanner = () => {
         </div>
 
         {/* Newly Discovered Devices */}
-        <div className="col-span-12 lg:col-span-7 glass-panel rounded-xl flex flex-col h-[360px]">
-          <div className="bg-surface-container-high px-lg py-sm flex items-center justify-between border-b border-glass-border">
-            <span className="font-label-mono text-label-micro text-primary uppercase font-bold tracking-widest">Newly Discovered Devices (อุปกรณ์ที่พบใหม่)</span>
-            <span className="bg-primary/20 text-primary font-label-micro px-2 py-0.5 rounded-full">{discoveredDevices.length} DETECTED</span>
+        <div className="glass-panel flex-col" style={{ height: '360px' }}>
+          <div className="flex-between p-md" style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)' }}>
+            <span className="text-mono text-micro text-accent font-bold">Newly Discovered Devices</span>
+            <span className="text-mono text-micro text-accent" style={{ background: 'rgba(79, 134, 247, 0.2)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{discoveredDevices.length} DETECTED</span>
           </div>
-          <div className="flex-1 p-lg overflow-y-auto space-y-md">
+          <div className="flex-1 p-md flex-col gap-md" style={{ overflowY: 'auto' }}>
             {discoveredDevices.length === 0 && !isScanning && (
-              <div className="text-center text-on-surface-variant font-label-mono mt-12 opacity-50">
-                No new devices found. Run a scan to populate this list.
+              <div className="flex-center h-full">
+                <div className="text-mono text-muted text-center" style={{ opacity: 0.6 }}>
+                  No new devices found. Run a scan to populate this list.
+                </div>
               </div>
             )}
             {discoveredDevices.length === 0 && isScanning && (
-              <div className="text-center text-on-surface-variant font-label-mono mt-12">
-                <span className="material-symbols-outlined text-4xl mb-2 spin inline-block">sync</span>
-                <p>Scanning network blocks...</p>
+              <div className="flex-center h-full">
+                <div className="text-mono text-muted text-center flex-col flex-center">
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', marginBottom: '0.5rem', animation: 'spin 2s linear infinite' }}>sync</span>
+                  <p>Scanning network blocks...</p>
+                </div>
               </div>
             )}
             
             {discoveredDevices.map(d => (
-              <div key={d.ip_address} className="flex items-center justify-between p-md bg-surface-container/50 border border-glass-border rounded-lg hover:border-primary/40 transition-colors group">
-                <div className="flex items-center gap-md">
-                  <div className="w-12 h-12 rounded bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
-                    <span className="material-symbols-outlined text-3xl">print</span>
+              <div key={d.ip_address} className="flex-between p-md transition-normal" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                <div className="flex-row gap-md">
+                  <div className="flex-center" style={{ width: '48px', height: '48px', borderRadius: '8px', background: 'rgba(79, 134, 247, 0.1)', color: 'var(--accent-primary)' }}>
+                    <span className="material-symbols-outlined icon-filled" style={{ fontSize: '28px' }}>print</span>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-on-surface">{d.model || d.hostname || 'Unidentified Node'}</h4>
-                    <p className="text-xs font-label-mono text-on-surface-variant">IP: {d.ip_address}</p>
+                  <div className="flex-col gap-xs">
+                    <h4 className="text-body" style={{ fontWeight: '600' }}>{d.model || d.hostname || 'Unidentified Node'}</h4>
+                    <p className="text-mono text-micro">IP: {d.ip_address}</p>
                   </div>
                 </div>
-                <button className="flex items-center gap-sm px-md py-2 bg-surface-container-highest rounded border border-glass-border text-on-surface hover:bg-primary hover:text-on-primary hover:border-primary transition-all font-label-mono text-label-micro uppercase tracking-tight">
-                  <span className="material-symbols-outlined text-base">check_circle</span>
+                <button className="btn btn-secondary text-mono text-micro">
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
                   เพิ่มในระบบ
                 </button>
               </div>
@@ -265,12 +271,12 @@ const Scanner = () => {
       </section>
 
       {/* Summary Info Box */}
-      <div className="p-lg bg-primary/5 rounded-xl border border-primary/20 flex items-center gap-lg">
-        <div className="p-md bg-primary/10 rounded-full">
-          <span className="material-symbols-outlined text-primary">info</span>
+      <div className="p-lg flex-row gap-lg" style={{ marginTop: '2rem', background: 'rgba(79, 134, 247, 0.05)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(79, 134, 247, 0.2)' }}>
+        <div className="flex-center" style={{ padding: '0.75rem', background: 'rgba(79, 134, 247, 0.1)', borderRadius: '50%' }}>
+          <span className="material-symbols-outlined text-accent">info</span>
         </div>
-        <p className="text-on-surface-variant leading-relaxed">
-          ระบบจะบันทึกอุปกรณ์ที่เลือกไว้ในระบบจัดการวัสดุสิ้นเปลืองโดยอัตโนมัติ โดยโปรโตคอล <span className="text-primary font-bold">SNMP v3</span> จะถูกเปิดใช้งานสำหรับอุปกรณ์เหล่านี้เพื่อการตรวจสอบสถานะแบบเรียลไทม์
+        <p className="text-body text-muted">
+          ระบบจะบันทึกอุปกรณ์ที่เลือกไว้ในระบบจัดการวัสดุสิ้นเปลืองโดยอัตโนมัติ โดยโปรโตคอล <span className="text-accent" style={{ fontWeight: 'bold' }}>SNMP v3</span> จะถูกเปิดใช้งานสำหรับอุปกรณ์เหล่านี้เพื่อการตรวจสอบสถานะแบบเรียลไทม์
         </p>
       </div>
     </div>

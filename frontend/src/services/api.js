@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8088';
-
 const api = axios.create({
-  baseURL,
+  baseURL: 'http://localhost:8088',
   timeout: 10000,
 });
 
@@ -42,11 +40,6 @@ export const refreshPrinter = async (id) => {
 
 export const getPrinterHistory = async (id) => {
   const response = await api.get(`/printers/${id}/history`);
-  return response.data;
-};
-
-export const getPrinterById = async (id) => {
-  const response = await api.get(`/printers/${id}/info`);
   return response.data;
 };
 

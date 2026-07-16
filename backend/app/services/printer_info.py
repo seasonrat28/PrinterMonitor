@@ -1,108 +1,205 @@
-from app.services.snmp_service import snmp_get_multiple, snmp_walk
+from app.services.snmp_service import snmp_get_multiple
 
-from app.vendor.brother import BrotherVendor
-from app.vendor.hp import HPVendor
-from app.vendor.canon import CanonVendor
-from app.vendor.ricoh import RicohVendor
-from app.vendor.kyocera import KyoceraVendor
-from app.vendor.xerox import XeroxVendor
-from app.vendor.fuji import FujiVendor
-from app.vendor.epson import EpsonVendor
-from app.vendor.lexmark import LexmarkVendor
-from app.vendor.base import BasePrinterVendor
+def parse_brother_status(brother_str: str) -> str:
+    """Parse Brother enterprise status string to match BRAdmin 4."""
+    if not brother_str:
+        return None
+    s = brother_str.lower()
+    if "sleep" in s:
+        if "deep" in s:
+            return "Deep Sleep"
+        return "Sleep"
+    if "ready" in s:
+        return "Ready"
+    if "printing" in s:
+        return "Printing"
+    if "warming" in s or "warm" in s:
+        return "Warming Up"
+    if "jam" in s:
+        return "Paper Jam"
+    if "cover" in s or "open" in s:
+        return "Cover Open"
+    if "toner low" in s:
+        return "Toner Low"
+    if "replace toner" in s:
+        return "Replace Toner"
+    if "replace drum" in s or "drum end" in s:
+        return "Replace Drum"
+    if "error" in s:
+        return "Error"
+    if "offline" in s:
+        return "Offline"
+    if "busy" in s or "receiving" in s:
+        return "Busy"
+    
+    # Capitalize first letter of each word if we don't know it
+    return brother_str.title()
+
+def parse_standard_status(hr_status: str, hr_error: str) -> str:
+    """Parse standard Printer-MIB status."""
+    # hrPrinterStatus: 1=other, 2=unknown, 3=idle, 4=printing, 5=warmup
+    status_map = {
+        "1": "Other",
+        "2": "Unknown",
+        "3": "Ready",
+        "4": "Printing",
+        "5": "Warming Up"
+    }
+    base_status = status_map.get(hr_status, "Online")
+    return base_status
 
 def get_printer_info(ip: str):
     """
-    Retrieves printer information via SNMP using the modular Vendor Engine.
+    Retrieves printer information via SNMP using batching for optimal performance.
     Returns a dict with all printer data, or None if the device is not a printer.
     """
-    # 1. Discovery Phase
-    base_oids = [
-        "1.3.6.1.2.1.1.1.0", # sysDescr
-        "1.3.6.1.2.1.1.2.0", # sysObjectID
-        "1.3.6.1.2.1.1.5.0", # sysName
-        "1.3.6.1.2.1.1.6.0", # sysLocation
-        "1.3.6.1.2.1.43.5.1.1.16.1", # printerName
-        "1.3.6.1.2.1.25.3.2.1.3.1" # hrDeviceDescr
-    ]
+    base_oids = {
+        "sysName": "1.3.6.1.2.1.1.5.0",
+        "sysLocation": "1.3.6.1.2.1.1.6.0",
+        "sysDescr": "1.3.6.1.2.1.1.1.0",
+        "printerName": "1.3.6.1.2.1.43.5.1.1.16.1",
+        "hrDeviceDescr": "1.3.6.1.2.1.25.3.2.1.3.1",
+        "serialNumber": "1.3.6.1.2.1.43.5.1.1.17.1",
+        "pageCount": "1.3.6.1.2.1.43.10.2.1.4.1.1",
+        "hrPrinterStatus": "1.3.6.1.2.1.25.3.5.1.1.1",
+        "hrPrinterError": "1.3.6.1.2.1.25.3.5.1.2.1",
+        "brStatus1": "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.8.0",
+        "brStatus2": "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.1.0",
+        "brStatus3": "1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.11.0"
+    }
     
-    discovery_res = snmp_get_multiple(ip, base_oids, timeout=3)
-    if not discovery_res:
+    # Batch 1: System info
+    base_results = snmp_get_multiple(ip, list(base_oids.values()), timeout=3)
+    
+    printer_name = base_results.get(base_oids["printerName"])
+    serial_number = base_results.get(base_oids["serialNumber"])
+    
+    # If standard printer OIDs are missing, maybe not a printer
+    if not printer_name and not serial_number:
         return None
         
-    sys_descr = discovery_res.get("1.3.6.1.2.1.1.1.0") or ""
-    sys_object_id = discovery_res.get("1.3.6.1.2.1.1.2.0") or ""
-    sys_name = discovery_res.get("1.3.6.1.2.1.1.5.0") or ""
-    sys_location = discovery_res.get("1.3.6.1.2.1.1.6.0") or ""
-    printer_name = discovery_res.get("1.3.6.1.2.1.43.5.1.1.16.1") or ""
-    hr_device_descr = discovery_res.get("1.3.6.1.2.1.25.3.2.1.3.1") or ""
-
-    # If it's a completely unresponsive or empty device, fail early
-    if not sys_descr and not sys_object_id:
-        return None
-
-    # 2. Identify Vendor
-    vendor_classes = [
-        BrotherVendor,
-        HPVendor,
-        CanonVendor,
-        RicohVendor,
-        KyoceraVendor,
-        XeroxVendor,
-        FujiVendor,
-        EpsonVendor,
-        LexmarkVendor
-    ]
+    hostname = base_results.get(base_oids["sysName"], "")
+    location = base_results.get(base_oids["sysLocation"], "")
+    model = base_results.get(base_oids["hrDeviceDescr"]) or printer_name or ""
+    sys_descr = base_results.get(base_oids["sysDescr"], "")
+    page_count_str = base_results.get(base_oids["pageCount"])
+    page_count = int(page_count_str) if page_count_str and page_count_str.isdigit() else 0
     
-    vendor_instance = None
-    brand_name = "Unknown"
+    # Status Mapping
+    final_status = "Online"
+    is_brother = "brother" in model.lower() or "brother" in sys_descr.lower()
     
-    for v_class in vendor_classes:
-        temp_instance = v_class(ip, snmp_get_multiple, snmp_walk)
-        if temp_instance.detect(sys_descr, sys_object_id):
-            vendor_instance = temp_instance
-            brand_name = v_class.__name__.replace("Vendor", "")
-            break
+    if is_brother:
+        # Try to parse Brother string
+        br_str = (
+            base_results.get(base_oids["brStatus1"]) or 
+            base_results.get(base_oids["brStatus2"]) or 
+            base_results.get(base_oids["brStatus3"])
+        )
+        if br_str:
+            # Clean hex/weird chars if any
+            clean_str = ''.join(c for c in br_str if 32 <= ord(c) < 127).strip()
+            final_status = parse_brother_status(clean_str)
+        else:
+            final_status = parse_standard_status(
+                base_results.get(base_oids["hrPrinterStatus"]), 
+                base_results.get(base_oids["hrPrinterError"])
+            )
+    else:
+        final_status = parse_standard_status(
+            base_results.get(base_oids["hrPrinterStatus"]), 
+            base_results.get(base_oids["hrPrinterError"])
+        )
+        
+    # Batch 2: Supply Descriptions
+    # 20 items is safe for one request.
+    desc_oids = {f"1.3.6.1.2.1.43.11.1.1.6.1.{i}": i for i in range(1, 21)}
+    desc_results = snmp_get_multiple(ip, list(desc_oids.keys()), timeout=2)
+    
+    # Identify which indices actually exist
+    valid_indices = []
+    for oid, desc in desc_results.items():
+        if desc:
+            valid_indices.append(desc_oids[oid])
             
-    if not vendor_instance:
-        # Fallback to generic base
-        vendor_instance = BasePrinterVendor(ip, snmp_get_multiple, snmp_walk)
-        brand_name = "Generic"
-        
-    # 3. Read Data
-    model = vendor_instance.read_model(sys_descr, hr_device_descr, printer_name)
-    serial_number = vendor_instance.read_serial()
-    status = vendor_instance.read_status()
-    page_count = vendor_instance.read_counter()
-    supplies = vendor_instance.read_supplies()
-    errors_info = vendor_instance.read_errors()
+    # Batch 3: Levels and Max Capacities for valid indices
+    level_oids = [f"1.3.6.1.2.1.43.11.1.1.9.1.{i}" for i in valid_indices]
+    max_oids = [f"1.3.6.1.2.1.43.11.1.1.8.1.{i}" for i in valid_indices]
     
-    # 4. Determine if it's color (basic heuristic based on supplies)
-    is_color = not (supplies.get("toner_cyan") is None and 
-                    supplies.get("toner_magenta") is None and 
-                    supplies.get("toner_yellow") is None)
-                    
+    supply_results = {}
+    if valid_indices:
+        supply_results = snmp_get_multiple(ip, level_oids + max_oids, timeout=2)
+        
+    def get_percent(i):
+        level_str = supply_results.get(f"1.3.6.1.2.1.43.11.1.1.9.1.{i}")
+        max_str = supply_results.get(f"1.3.6.1.2.1.43.11.1.1.8.1.{i}")
+        try:
+            lvl = int(level_str)
+            mx = int(max_str)
+            if mx > 0 and lvl >= 0:
+                return int((lvl / mx) * 100)
+        except (ValueError, TypeError):
+            pass
+        return None
 
+    toner_black = None
+    toner_cyan = None
+    toner_magenta = None
+    toner_yellow = None
+    drum_unit = None
+    fuser_unit = None
+    laser_unit = None
+    pf_kit_mp = None
+    pf_kit_1 = None
+    
+    for i in valid_indices:
+        desc = desc_results.get(f"1.3.6.1.2.1.43.11.1.1.6.1.{i}", "")
+        pct = get_percent(i)
+        
+        if pct is not None:
+            desc_lower = desc.lower()
+            if "toner" in desc_lower or "cartridge" in desc_lower:
+                if "black" in desc_lower or "(k)" in desc_lower or " k " in desc_lower or desc_lower.endswith(" k"):
+                    toner_black = pct
+                elif "cyan" in desc_lower or "(c)" in desc_lower or " c " in desc_lower or desc_lower.endswith(" c"):
+                    toner_cyan = pct
+                elif "magenta" in desc_lower or "(m)" in desc_lower or " m " in desc_lower or desc_lower.endswith(" m"):
+                    toner_magenta = pct
+                elif "yellow" in desc_lower or "(y)" in desc_lower or " y " in desc_lower or desc_lower.endswith(" y"):
+                    toner_yellow = pct
+                elif "toner" in desc_lower and not ("cyan" in desc_lower or "magenta" in desc_lower or "yellow" in desc_lower):
+                    toner_black = pct
+            elif "drum" in desc_lower:
+                drum_unit = pct
+            elif "fuser" in desc_lower:
+                fuser_unit = pct
+            elif "laser" in desc_lower:
+                laser_unit = pct
+            elif "pf kit mp" in desc_lower or "pf_kit_mp" in desc_lower or "kit mp" in desc_lower:
+                pf_kit_mp = pct
+            elif "pf kit 1" in desc_lower or "pf_kit_1" in desc_lower or "kit 1" in desc_lower:
+                pf_kit_1 = pct
+            elif "pf kit" in desc_lower:
+                pf_kit_1 = pct
 
-    # Return strict dictionary - no fake defaults here.
+    is_color = not (toner_cyan is None and toner_magenta is None and toner_yellow is None)
+
     return {
-        "hostname": sys_name,
-        "brand": brand_name if brand_name != "Generic" else "",
-        "model": model,
-        "serial_number": serial_number,
-        "location": sys_location,
+        "hostname": hostname or "",
+        "brand": "Brother" if is_brother else "",
+        "model": model or "",
+        "serial_number": serial_number or "",
+        "location": location or "",
         "is_color": is_color,
         "page_count": page_count,
-        "toner_black": supplies.get("toner_black"),
-        "toner_cyan": supplies.get("toner_cyan"),
-        "toner_magenta": supplies.get("toner_magenta"),
-        "toner_yellow": supplies.get("toner_yellow"),
-        "drum_unit": supplies.get("drum_unit"),
-        "fuser_unit": supplies.get("fuser_unit"),
-        "laser_unit": supplies.get("laser_unit"),
-        "pf_kit_mp": supplies.get("pf_kit_mp"),
-        "pf_kit_1": supplies.get("pf_kit_1"),
-        "status": status,
-        "last_error": errors_info.get("last_error", ""),
-        "paper_jam_count": errors_info.get("paper_jam_count", 0)
+        "toner_black": toner_black if toner_black is not None else 0,
+        "toner_cyan": toner_cyan,
+        "toner_magenta": toner_magenta,
+        "toner_yellow": toner_yellow,
+        "drum_unit": drum_unit,
+        "fuser_unit": fuser_unit,
+        "laser_unit": laser_unit,
+        "pf_kit_mp": pf_kit_mp,
+        "pf_kit_1": pf_kit_1,
+        "status": final_status
     }

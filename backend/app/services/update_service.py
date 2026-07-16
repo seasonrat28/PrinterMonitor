@@ -34,16 +34,31 @@ def refresh_printer(db: Session, printer_id: int):
         printer.location = info["location"]
     printer.is_color = info.get("is_color", printer.is_color)
 
-    printer.page_count = info.get("page_count")
-    printer.toner_black = info.get("toner_black")
-    printer.toner_cyan = info.get("toner_cyan")
-    printer.toner_magenta = info.get("toner_magenta")
-    printer.toner_yellow = info.get("toner_yellow")
-    printer.drum_unit = info.get("drum_unit")
-    printer.fuser_unit = info.get("fuser_unit")
-    printer.laser_unit = info.get("laser_unit")
-    printer.pf_kit_mp = info.get("pf_kit_mp")
-    printer.pf_kit_1 = info.get("pf_kit_1")
+    if info.get("page_count") is not None:
+        printer.page_count = info["page_count"]
+
+    if info.get("toner_black") is not None:
+        printer.toner_black = info["toner_black"]
+
+    # Color toners: only update if SNMP responded (None means not available)
+    if info.get("toner_cyan") is not None:
+        printer.toner_cyan = info["toner_cyan"]
+    if info.get("toner_magenta") is not None:
+        printer.toner_magenta = info["toner_magenta"]
+    if info.get("toner_yellow") is not None:
+        printer.toner_yellow = info["toner_yellow"]
+
+    # Advanced components
+    if info.get("drum_unit") is not None:
+        printer.drum_unit = info["drum_unit"]
+    if info.get("fuser_unit") is not None:
+        printer.fuser_unit = info["fuser_unit"]
+    if info.get("laser_unit") is not None:
+        printer.laser_unit = info["laser_unit"]
+    if info.get("pf_kit_mp") is not None:
+        printer.pf_kit_mp = info["pf_kit_mp"]
+    if info.get("pf_kit_1") is not None:
+        printer.pf_kit_1 = info["pf_kit_1"]
 
     printer.printer_status = info.get("status", printer.printer_status)
     printer.status = "Online"

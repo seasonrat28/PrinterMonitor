@@ -44,10 +44,6 @@ class PrinterResponse(PrinterBase):
     printer_status: Optional[str] = "Ready"
     error_code: Optional[str] = ""
 
-    # ข้อผิดพลาดล่าสุดและกระดาษติด
-    last_error: Optional[str] = ""
-    paper_jam_count: Optional[int] = 0
-
     # เวลา
     last_seen: Optional[datetime] = None
     last_update: Optional[datetime] = None

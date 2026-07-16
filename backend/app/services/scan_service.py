@@ -4,7 +4,6 @@ This is the canonical scan service used by the scheduler and scan router.
 (Replaced the old duplicate scanner_service.py)
 """
 from datetime import datetime
-import logging
 
 from sqlalchemy.orm import Session
 
@@ -12,7 +11,18 @@ from app.models.printer import Printer
 from app.services.printer_info import get_printer_info
 from app.services.scanner import scan_network
 
-logger = logging.getLogger(__name__)
+
+def scan_and_save_multi(db: Session, networks: list[str], start: int = 1, end: int = 254):
+    """Scan multiple network prefixes (e.g. ["10.119.34", "10.119.35", "10.119.43"])
+    one at a time and combine the results."""
+    combined = []
+    for network in networks:
+        network = network.strip()
+        if not network:
+            continue
+        print(f"--- Scanning network {network} ---")
+        combined.extend(scan_and_save(db, network, start, end))
+    return combined
 
 
 def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254):
@@ -35,29 +45,31 @@ def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254):
             continue
 
         ip = device["ip"]
-        logger.debug("[PING OK] %s", ip)
+        print(f"[PING OK] {ip}")
 
         info = get_printer_info(ip)
 
         # Skip non-printer devices (no Printer-MIB response)
         if not info:
-            logger.debug("[SKIP] %s — not a printer or SNMP disabled", ip)
+            print(f"[SKIP] {ip} — not a printer or SNMP disabled")
             continue
 
         exists = db.query(Printer).filter(Printer.ip_address == ip).first()
 
         if exists:
-            logger.info("[UPDATE] %s", ip)
+            print(f"[UPDATE] {ip}")
             _apply_info(exists, info)
+            exists.network = network
             exists.online = True
             exists.status = "Online"
             exists.last_seen = datetime.utcnow()
             db.commit()
             results.append({"id": exists.id, "ip": ip, "action": "updated"})
         else:
-            logger.info("[CREATE] %s", ip)
+            print(f"[CREATE] {ip}")
             printer = Printer(
                 ip_address=ip,
+                network=network,
                 hostname=info.get("hostname", ""),
                 brand=info.get("brand", ""),
                 model=info.get("model", ""),
@@ -74,8 +86,6 @@ def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254):
                 pf_kit_mp=info.get("pf_kit_mp"),
                 pf_kit_1=info.get("pf_kit_1"),
                 printer_status=info.get("status", "Ready"),
-                paper_jam_count=info.get("paper_jam_count", 0),
-                last_error=info.get("last_error", ""),
                 location="Unknown",
                 department="Unknown",
                 online=True,
@@ -98,22 +108,26 @@ def _apply_info(printer: Printer, info: dict):
     printer.serial_number = info.get("serial_number", printer.serial_number)
     printer.is_color = info.get("is_color", printer.is_color)
     printer.page_count = info.get("page_count", printer.page_count)
-    
-    # Location
-    if "location" in info and info["location"]:
-        printer.location = info["location"]
+    printer.toner_black = info.get("toner_black", printer.toner_black)
 
-    # Strict None mapping for supplies (No Fake Data)
-    printer.toner_black = info.get("toner_black")
-    printer.toner_cyan = info.get("toner_cyan")
-    printer.toner_magenta = info.get("toner_magenta")
-    printer.toner_yellow = info.get("toner_yellow")
-    printer.drum_unit = info.get("drum_unit")
-    printer.fuser_unit = info.get("fuser_unit")
-    printer.laser_unit = info.get("laser_unit")
-    printer.pf_kit_mp = info.get("pf_kit_mp")
-    printer.pf_kit_1 = info.get("pf_kit_1")
+    # Only overwrite color toners if SNMP returned a real value
+    if info.get("toner_cyan") is not None:
+        printer.toner_cyan = info["toner_cyan"]
+    if info.get("toner_magenta") is not None:
+        printer.toner_magenta = info["toner_magenta"]
+    if info.get("toner_yellow") is not None:
+        printer.toner_yellow = info["toner_yellow"]
+
+    # Advanced components
+    if info.get("drum_unit") is not None:
+        printer.drum_unit = info["drum_unit"]
+    if info.get("fuser_unit") is not None:
+        printer.fuser_unit = info["fuser_unit"]
+    if info.get("laser_unit") is not None:
+        printer.laser_unit = info["laser_unit"]
+    if info.get("pf_kit_mp") is not None:
+        printer.pf_kit_mp = info["pf_kit_mp"]
+    if info.get("pf_kit_1") is not None:
+        printer.pf_kit_1 = info["pf_kit_1"]
 
     printer.printer_status = info.get("status", printer.printer_status)
-    printer.paper_jam_count = info.get("paper_jam_count", printer.paper_jam_count)
-    printer.last_error = info.get("last_error", printer.last_error)

@@ -100,7 +100,7 @@ const Scanner = () => {
     <div className="max-w-[1440px] mx-auto space-y-lg relative z-10 pb-md">
       {/* Network Targeting Controls */}
       <section className="glass-panel rounded-xl p-md flex flex-wrap md:flex-nowrap items-end gap-md relative z-20">
-        <div className="flex-1 space-y-xs">
+        <div className="w-full md:w-64 space-y-xs">
           <label className="font-label-mono text-[10px] text-primary uppercase tracking-widest block">ช่วง IP สำหรับการสแกน</label>
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary/60 text-base">settings_ethernet</span>
@@ -113,7 +113,7 @@ const Scanner = () => {
             />
           </div>
         </div>
-        <div className="flex-1 space-y-xs">
+        <div className="w-full md:w-64 space-y-xs">
           <label className="font-label-mono text-[10px] text-primary uppercase tracking-widest block">Subnet Mask</label>
           <select className="w-full bg-surface-container-lowest border-none rounded-lg py-2 px-3 font-label-mono text-base text-on-surface focus:ring-2 focus:ring-primary/30 transition-all appearance-none cursor-pointer">
             <option>255.255.255.0 (/24)</option>

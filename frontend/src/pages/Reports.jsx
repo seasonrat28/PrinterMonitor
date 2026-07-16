@@ -94,15 +94,12 @@ const Reports = () => {
         </div>
         {/* Pagination */}
         <div className="p-lg flex items-center justify-between border-t border-glass-border bg-surface-container-high/20">
-          <span className="text-label-mono text-outline">Showing 1-6 of 12,842 events</span>
+          <span className="text-label-mono text-outline">Showing 0 events</span>
           <div className="flex items-center gap-sm">
-            <button className="w-8 h-8 flex items-center justify-center rounded bg-white/5 text-outline hover:text-on-surface active:scale-95 transition-all">
+            <button className="w-8 h-8 flex items-center justify-center rounded bg-white/5 text-outline hover:text-on-surface active:scale-95 transition-all opacity-50 cursor-not-allowed">
               <span className="material-symbols-outlined text-sm">chevron_left</span>
             </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded bg-primary text-on-primary text-label-mono shadow-md">1</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded bg-white/5 text-outline hover:text-on-surface active:scale-95 transition-all">2</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded bg-white/5 text-outline hover:text-on-surface active:scale-95 transition-all">3</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded bg-white/5 text-outline hover:text-on-surface active:scale-95 transition-all">
+            <button className="w-8 h-8 flex items-center justify-center rounded bg-white/5 text-outline hover:text-on-surface active:scale-95 transition-all opacity-50 cursor-not-allowed">
               <span className="material-symbols-outlined text-sm">chevron_right</span>
             </button>
           </div>

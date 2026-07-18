@@ -79,7 +79,11 @@ def get_printer_info(ip: str):
         return None
         
     hostname = base_results.get(base_oids["sysName"], "")
-    location = base_results.get(base_oids["sysLocation"], "")
+    location = (
+    base_results.get(base_oids["sysLocation"])
+    or base_results.get(base_oids["sysName"])
+    or "Unknown"
+)
     model = base_results.get(base_oids["hrDeviceDescr"]) or printer_name or ""
     sys_descr = base_results.get(base_oids["sysDescr"], "")
     page_count_str = base_results.get(base_oids["pageCount"])
@@ -127,19 +131,34 @@ def get_printer_info(ip: str):
     max_oids = [f"1.3.6.1.2.1.43.11.1.1.8.1.{i}" for i in valid_indices]
     
     supply_results = {}
+
     if valid_indices:
-        supply_results = snmp_get_multiple(ip, level_oids + max_oids, timeout=2)
-        
+        supply_results = snmp_get_multiple(
+            ip,
+            level_oids + max_oids,
+            timeout=2
+        )
+
+
     def get_percent(i):
-        level_str = supply_results.get(f"1.3.6.1.2.1.43.11.1.1.9.1.{i}")
-        max_str = supply_results.get(f"1.3.6.1.2.1.43.11.1.1.8.1.{i}")
+        level_str = supply_results.get(
+            f"1.3.6.1.2.1.43.11.1.1.9.1.{i}"
+        )
+
+        max_str = supply_results.get(
+            f"1.3.6.1.2.1.43.11.1.1.8.1.{i}"
+        )
+
         try:
             lvl = int(level_str)
             mx = int(max_str)
+
             if mx > 0 and lvl >= 0:
                 return int((lvl / mx) * 100)
+
         except (ValueError, TypeError):
             pass
+
         return None
 
     toner_black = None
@@ -182,7 +201,25 @@ def get_printer_info(ip: str):
             elif "pf kit" in desc_lower:
                 pf_kit_1 = pct
 
-    is_color = not (toner_cyan is None and toner_magenta is None and toner_yellow is None)
+
+    is_color = not (
+    toner_cyan is None and
+    toner_magenta is None and
+    toner_yellow is None
+)
+
+    is_color = not (
+        toner_cyan is None and
+        toner_magenta is None and
+        toner_yellow is None
+    )
+
+    print("=" * 50)
+    print("HOSTNAME :", hostname)
+    print("LOCATION :", location)
+    print("SYSNAME  :", base_results.get(base_oids["sysName"]))
+    print("SYSLOC   :", base_results.get(base_oids["sysLocation"]))
+    print("=" * 50)
 
     return {
         "hostname": hostname or "",

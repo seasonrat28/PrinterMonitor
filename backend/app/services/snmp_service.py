@@ -7,6 +7,7 @@ from pysnmp.hlapi.v1arch.asyncio import (
     SnmpDispatcher,
     UdpTransportTarget,
     get_cmd,
+    walk_cmd,
 )
 
 from app.core.config import SNMP_COMMUNITY, SNMP_PORT
@@ -54,4 +55,56 @@ def snmp_get_multiple(ip: str, oids: list[str], timeout: int = TIMEOUT) -> dict[
         return results
     except Exception as exc:
         print(f"[SNMP Error] IP: {ip}, Multiple OIDs ({len(oids)}) -> {exc}")
+        return {}
+
+
+
+def snmp_walk(ip: str, oid: str, timeout: int = TIMEOUT) -> dict[str, str]:
+    """SNMP Walk for pysnmp 7.x v1arch asyncio."""
+
+    async def request():
+        results = {}
+
+        dispatcher = SnmpDispatcher()
+
+        target = await UdpTransportTarget.create(
+            (ip, SNMP_PORT),
+            timeout=timeout,
+            retries=RETRY
+        )
+
+        async for (
+            error_indication,
+            error_status,
+            error_index,
+            var_binds
+        ) in walk_cmd(
+            dispatcher,
+            CommunityData(SNMP_COMMUNITY, mpModel=1),
+            target,
+            ObjectType(ObjectIdentity(oid))
+        ):
+
+            if error_indication:
+                print(error_indication)
+                break
+
+            if error_status:
+                print(error_status)
+                break
+
+            for var_bind in var_binds:
+                oid_str = str(var_bind[0])
+                value = str(var_bind[1])
+
+                if "No Such" not in value:
+                    results[oid_str] = value
+
+        return results
+
+    try:
+        return asyncio.run(request())
+
+    except Exception as exc:
+        print(f"[SNMP Walk Error] IP: {ip}, OID: {oid} -> {exc}")
         return {}

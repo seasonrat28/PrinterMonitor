@@ -48,6 +48,8 @@ def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254):
         print(f"[PING OK] {ip}")
 
         info = get_printer_info(ip)
+        print(info)
+        print(f"Location from SNMP = {info.get('location') if info else None}")
 
         # Skip non-printer devices (no Printer-MIB response)
         if not info:
@@ -86,8 +88,8 @@ def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254):
                 pf_kit_mp=info.get("pf_kit_mp"),
                 pf_kit_1=info.get("pf_kit_1"),
                 printer_status=info.get("status", "Ready"),
-                location="Unknown",
-                department="Unknown",
+                location=info.get("location", "Unknown"),
+                department=info.get("department", "Unknown"),
                 online=True,
                 status="Online",
                 last_seen=datetime.utcnow(),
@@ -106,9 +108,12 @@ def _apply_info(printer: Printer, info: dict):
     printer.brand = info.get("brand", printer.brand)
     printer.model = info.get("model", printer.model)
     printer.serial_number = info.get("serial_number", printer.serial_number)
+    printer.location = info.get("location", printer.location)
+    printer.department = info.get("department", printer.department)
     printer.is_color = info.get("is_color", printer.is_color)
     printer.page_count = info.get("page_count", printer.page_count)
     printer.toner_black = info.get("toner_black", printer.toner_black)
+    
 
     # Only overwrite color toners if SNMP returned a real value
     if info.get("toner_cyan") is not None:

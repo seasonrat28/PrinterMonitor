@@ -95,3 +95,4 @@ DEFAULT_NETWORK=10.119.35
 POLL_INTERVAL=180          # ระยะเวลา Auto Scan (วินาที)
 STATUS_POLL_INTERVAL=30    # ระยะเวลาเช็คสถานะ Online/Offline (วินาที)
 ```
+"# PrinterMoniter" 

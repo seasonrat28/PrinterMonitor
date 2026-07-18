@@ -25,7 +25,7 @@ def auto_scan():
         print("=" * 50)
         print(f"AUTO SCAN START ({', '.join(DEFAULT_NETWORKS)})")
 
-        scan_and_save_multi(db, DEFAULT_NETWORKS, SCAN_START, SCAN_END)
+        scan_and_save_multi(db, DEFAULT_NETWORKS, SCAN_START, SCAN_END, allow_creation=False)
 
         print("AUTO SCAN END")
         print("=" * 50)

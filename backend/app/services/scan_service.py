@@ -12,7 +12,7 @@ from app.services.printer_info import get_printer_info
 from app.services.scanner import scan_network
 
 
-def scan_and_save_multi(db: Session, networks: list[str], start: int = 1, end: int = 254):
+def scan_and_save_multi(db: Session, networks: list[str], start: int = 1, end: int = 254, allow_creation: bool = True):
     """Scan multiple network prefixes (e.g. ["10.119.34", "10.119.35", "10.119.43"])
     one at a time and combine the results."""
     combined = []
@@ -21,11 +21,11 @@ def scan_and_save_multi(db: Session, networks: list[str], start: int = 1, end: i
         if not network:
             continue
         print(f"--- Scanning network {network} ---")
-        combined.extend(scan_and_save(db, network, start, end))
+        combined.extend(scan_and_save(db, network, start, end, allow_creation))
     return combined
 
 
-def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254):
+def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254, allow_creation: bool = True):
     """
     Ping every IP in [network.start .. network.end], run SNMP on responding
     hosts, and upsert the result into the database.
@@ -68,6 +68,10 @@ def scan_and_save(db: Session, network: str, start: int = 1, end: int = 254):
             db.commit()
             results.append({"id": exists.id, "ip": ip, "action": "updated"})
         else:
+            if not allow_creation:
+                print(f"[SKIP CREATE] {ip} — creation disabled (auto scan)")
+                continue
+
             print(f"[CREATE] {ip}")
             printer = Printer(
                 ip_address=ip,

@@ -11,3 +11,13 @@ database/*.db
 logs/
 uploads/
 backup/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Runtime database
+backend/database/*.db
+
+# Logs
+logs/

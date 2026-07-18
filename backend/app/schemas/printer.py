@@ -10,6 +10,26 @@ class PrinterBase(BaseModel):
     brand: Optional[str] = None
     status: Optional[str] = "Unknown"
 
+    # Added fields
+    hostname: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    network: Optional[str] = None
+    is_color: Optional[bool] = None
+    page_count: Optional[int] = None
+    toner_black: Optional[int] = None
+    toner_cyan: Optional[int] = None
+    toner_magenta: Optional[int] = None
+    toner_yellow: Optional[int] = None
+    drum_unit: Optional[int] = None
+    fuser_unit: Optional[int] = None
+    laser_unit: Optional[int] = None
+    pf_kit_mp: Optional[int] = None
+    pf_kit_1: Optional[int] = None
+    printer_status: Optional[str] = None
+    department: Optional[str] = None
+    online: Optional[bool] = None
+    last_seen: Optional[datetime] = None
 class PrinterCreate(PrinterBase):
     pass
 

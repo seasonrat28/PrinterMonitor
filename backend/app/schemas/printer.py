@@ -1,52 +1,28 @@
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
-from pydantic import BaseModel
-
+from datetime import datetime
 
 class PrinterBase(BaseModel):
+    name: Optional[str] = None
     ip_address: str
-    hostname: Optional[str] = None
-    brand: Optional[str] = None
-    model: Optional[str] = None
-    serial_number: Optional[str] = None
+    password: Optional[str] = None
     location: Optional[str] = None
-    department: Optional[str] = None
-
+    brand: Optional[str] = None
+    status: Optional[str] = "Unknown"
 
 class PrinterCreate(PrinterBase):
     pass
 
+class PrinterUpdate(BaseModel):
+    name: Optional[str] = None
+    ip_address: Optional[str] = None
+    password: Optional[str] = None
+    location: Optional[str] = None
+    brand: Optional[str] = None
+    status: Optional[str] = None
 
 class PrinterResponse(PrinterBase):
     id: int
-
-    status: str
-    online: bool
-    is_color: Optional[bool] = True
-
-    # จำนวนหน้าที่พิมพ์
-    page_count: Optional[int] = 0
-
-    # ระดับหมึก (None = ไม่มี / เครื่อง mono)
-    toner_black: Optional[int] = 0
-    toner_cyan: Optional[int] = None
-    toner_magenta: Optional[int] = None
-    toner_yellow: Optional[int] = None
-
-    # Advanced Component Status (None = ไม่มีข้อมูล)
-    drum_unit: Optional[int] = None
-    fuser_unit: Optional[int] = None
-    laser_unit: Optional[int] = None
-    pf_kit_mp: Optional[int] = None
-    pf_kit_1: Optional[int] = None
-
-    # สถานะเครื่อง
-    printer_status: Optional[str] = "Ready"
-    error_code: Optional[str] = ""
-
-    # เวลา
-    last_seen: Optional[datetime] = None
-    last_update: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)

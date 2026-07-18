@@ -1,56 +1,30 @@
 from sqlalchemy.orm import Session
-
 from app.models.printer import Printer
-from app.schemas.printer import PrinterCreate
+from app.schemas.printer import PrinterCreate, PrinterUpdate
 
-
-def get_by_id(db: Session, printer_id: int):
-    return (
-        db.query(Printer)
-        .filter(Printer.id == printer_id)
-        .first()
-    )
-
-
-def get_all(db: Session):
-    return (
-        db.query(Printer)
-        .order_by(Printer.ip_address)
-        .all()
-    )
-
-
-def create(db: Session, printer: PrinterCreate):
-
-    obj = Printer(
-        ip_address=printer.ip_address,
-        hostname=printer.hostname,
-        brand=printer.brand,
-        model=printer.model,
-        serial_number=printer.serial_number,
-        location=printer.location,
-        department=printer.department,
-        status="Online",
-        online=True
-    )
-
-    db.add(obj)
+def create_printer(db: Session, printer: PrinterCreate):
+    db_printer = Printer(**printer.model_dump())
+    db.add(db_printer)
     db.commit()
-    db.refresh(obj)
+    db.refresh(db_printer)
+    return db_printer
 
-    return obj
+def update_printer(db: Session, db_printer: Printer, printer_update: PrinterUpdate):
+    update_data = printer_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_printer, key, value)
+    
+    db.commit()
+    db.refresh(db_printer)
+    return db_printer
 
+def delete_printer(db: Session, db_printer: Printer):
+    db.delete(db_printer)
+    db.commit()
+    return db_printer
 
-def delete(db: Session, printer_id: int):
+def get_printer(db: Session, printer_id: int):
+    return db.query(Printer).filter(Printer.id == printer_id).first()
 
-    obj = (
-        db.query(Printer)
-        .filter(Printer.id == printer_id)
-        .first()
-    )
-
-    if obj:
-        db.delete(obj)
-        db.commit()
-
-    return obj
+def list_printers(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(Printer).offset(skip).limit(limit).all()

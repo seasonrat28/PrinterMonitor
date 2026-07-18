@@ -1,61 +1,19 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.db.base_class import Base
-
 
 class Printer(Base):
     __tablename__ = "printers"
 
     id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True, nullable=True)
+    ip_address = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    brand = Column(String, nullable=True)
+    status = Column(String, default="Unknown")
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    ip_address = Column(String(50), unique=True, nullable=False)
-    hostname = Column(String(100))
-    brand = Column(String(100))
-    model = Column(String(100))
-    serial_number = Column(String(100))
-
-    location = Column(String(100))
-    department = Column(String(100))
-    network = Column(String(50), index=True)  # เช่น "10.119.34" ใช้แยกหมวดหมู่ตามวงที่สแกนเจอ
-
-    status = Column(String(50), default="Unknown")
-    online = Column(Boolean, default=False)
-    is_color = Column(Boolean, default=True)
-
-    # จำนวนหน้าที่พิมพ์ทั้งหมด
-    page_count = Column(Integer, default=0)
-
-    # ระดับหมึก (%)
-    toner_black = Column(Integer, nullable=True)
-    toner_cyan = Column(Integer, nullable=True)
-    toner_magenta = Column(Integer, nullable=True)
-    toner_yellow = Column(Integer, nullable=True)
-
-    # Advanced Component Status — เก็บเป็น % (0-100)
-    drum_unit = Column(Integer, nullable=True)
-    fuser_unit = Column(Integer, nullable=True)
-    laser_unit = Column(Integer, nullable=True)
-    pf_kit_mp = Column(Integer, nullable=True)
-    pf_kit_1 = Column(Integer, nullable=True)
-
-    # Advanced Component — เก็บจำนวนหน้าคงเหลือ (pages remaining)
-    drum_unit_pages = Column(Integer, nullable=True)
-    fuser_unit_pages = Column(Integer, nullable=True)
-    laser_unit_pages = Column(Integer, nullable=True)
-    pf_kit_mp_pages = Column(Integer, nullable=True)
-    pf_kit_1_pages = Column(Integer, nullable=True)
-
-    # สถานะเครื่อง
-    printer_status = Column(String(100), default="Ready")
-    error_code = Column(String(100), default="")
-
-    # เวลาที่พบเครื่องล่าสุด
-    last_seen = Column(DateTime, default=datetime.utcnow)
-
-    # เวลาที่อัปเดตข้อมูลล่าสุด
-    last_update = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
-    )
+    logs = relationship("PrinterLog", back_populates="printer", cascade="all, delete-orphan")

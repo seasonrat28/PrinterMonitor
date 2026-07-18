@@ -1,39 +1,35 @@
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-frontend/node_modules/
-frontend/dist/
-*.pyc
-
-# Added for cleanup
-backend/.env
-database/*.db
-logs/
-uploads/
-backup/
-
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
 
-# Runtime database
+# Virtual Environment
+venv/
+backend/venv/
+
+# Environment
+.env
+backend/.env
+
+# Database
+*.db
 backend/database/*.db
 
 # Logs
 logs/
 
+# Uploads & Backups
+uploads/
+backup/
+backend/archive/
+
 # Tests
 test_*.py
 tests/
 **/test_*.py
-
-# Test files
 backend/test_*.py
 backend/*_test.py
 
-__pycache__/
-*.pyc
-
-# Virtual environment
-venv/
-backend/venv/
+# Frontend
+frontend/node_modules/
+frontend/dist/

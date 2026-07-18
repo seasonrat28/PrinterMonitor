@@ -6,6 +6,8 @@ from app.db.session import SessionLocal
 from app.schemas.printer import PrinterCreate, PrinterUpdate, PrinterResponse
 from app.services import printer_service
 from app.models.printer import Printer
+from app.models.printer_history import PrinterHistory
+from app.services.update_service import refresh_printer
 
 router = APIRouter(prefix="/printers", tags=["Printers"])
 
@@ -41,6 +43,64 @@ def update_printer(id: int, printer_update: PrinterUpdate, db: Session = Depends
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
 def delete_printer(id: int, db: Session = Depends(get_db)):
     db_printer = printer_service.get_printer(db, id)
+    if not db_printer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Printer not found")
+    printer_service.delete_printer(db, db_printer)
+    return {"message": "Printer deleted successfully"}
+
+
+@router.post("/{id}/refresh", response_model=PrinterResponse)
+def refresh_one_printer(id: int, db: Session = Depends(get_db)):
+    db_printer = printer_service.get_printer(db, id)
+    if not db_printer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Printer not found")
+
+    refreshed = refresh_printer(db, id)
+    if refreshed is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Printer not found")
+    return refreshed
+
+
+@router.get("/{id}/history")
+def get_printer_history(id: int, db: Session = Depends(get_db)):
+    db_printer = printer_service.get_printer(db, id)
+    if not db_printer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Printer not found")
+
+    history = db.query(PrinterHistory).filter(PrinterHistory.printer_id == id).order_by(PrinterHistory.timestamp.asc()).all()
+    return [
+        {
+            "id": item.id,
+            "printer_id": item.printer_id,
+            "page_count": item.page_count,
+            "toner_black": item.toner_black,
+            "toner_cyan": item.toner_cyan,
+            "toner_magenta": item.toner_magenta,
+            "toner_yellow": item.toner_yellow,
+            "timestamp": item.timestamp.isoformat() if item.timestamp else None,
+        }
+        for item in history
+    ]
+
+
+@router.post("/add-by-ip", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
+def add_printer_by_ip(payload: dict, db: Session = Depends(get_db)):
+    ips = payload.get("ips") or []
+    if not isinstance(ips, list) or not ips:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please provide at least one IP address")
+
+    ip = ips[0]
+    existing = printer_service.get_printer_by_ip(db, ip)
+    if existing:
+        return existing
+
+    new_printer = printer_service.create_printer(db, PrinterCreate(ip_address=ip, status="Unknown"))
+    return new_printer
+
+
+@router.delete("/ip/{ip}", status_code=status.HTTP_200_OK)
+def delete_printer_by_ip(ip: str, db: Session = Depends(get_db)):
+    db_printer = printer_service.get_printer_by_ip(db, ip)
     if not db_printer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Printer not found")
     printer_service.delete_printer(db, db_printer)

@@ -21,14 +21,6 @@ const MainLayout = () => {
             <LayoutDashboard size={20} />
             Dashboard
           </NavLink>
-          
-          <NavLink 
-            to="/printers" 
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
-            <Printer size={20} />
-            All Printers
-          </NavLink>
         </nav>
       </aside>
 

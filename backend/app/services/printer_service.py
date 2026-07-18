@@ -30,6 +30,12 @@ def get_printer(db: Session, printer_id: int) -> Optional[Printer]:
     stmt = select(Printer).where(Printer.id == printer_id)
     return db.execute(stmt).scalars().first()
 
+
+def get_printer_by_ip(db: Session, ip_address: str) -> Optional[Printer]:
+    stmt = select(Printer).where(Printer.ip_address == ip_address)
+    return db.execute(stmt).scalars().first()
+
+
 def list_printers(db: Session, skip: int = 0, limit: int = 100) -> List[Printer]:
     stmt = select(Printer).offset(skip).limit(limit)
     return list(db.execute(stmt).scalars().all())

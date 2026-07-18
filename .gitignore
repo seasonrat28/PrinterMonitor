@@ -21,3 +21,19 @@ backend/database/*.db
 
 # Logs
 logs/
+
+# Tests
+test_*.py
+tests/
+**/test_*.py
+
+# Test files
+backend/test_*.py
+backend/*_test.py
+
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+backend/venv/

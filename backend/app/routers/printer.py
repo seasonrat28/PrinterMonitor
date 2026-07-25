@@ -83,19 +83,25 @@ def get_printer_history(id: int, db: Session = Depends(get_db)):
     ]
 
 
-@router.post("/add-by-ip", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/add-by-ip", status_code=status.HTTP_200_OK)
 def add_printer_by_ip(payload: dict, db: Session = Depends(get_db)):
     ips = payload.get("ips") or []
     if not isinstance(ips, list) or not ips:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please provide at least one IP address")
 
-    ip = ips[0]
-    existing = printer_service.get_printer_by_ip(db, ip)
-    if existing:
-        return existing
+    results = []
+    for ip in ips:
+        existing = printer_service.get_printer_by_ip(db, ip)
+        if existing:
+            results.append({"ip": ip, "action": "updated", "detail": "Already exists"})
+        else:
+            try:
+                printer_service.create_printer(db, PrinterCreate(ip_address=ip, status="Unknown"))
+                results.append({"ip": ip, "action": "created"})
+            except Exception as e:
+                results.append({"ip": ip, "action": "failed", "detail": str(e)})
 
-    new_printer = printer_service.create_printer(db, PrinterCreate(ip_address=ip, status="Unknown"))
-    return new_printer
+    return results
 
 
 @router.delete("/ip/{ip}", status_code=status.HTTP_200_OK)

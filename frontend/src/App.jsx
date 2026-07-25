@@ -12,6 +12,8 @@ function App() {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="printers" element={<Printers />} />
+          <Route path="printers/:id" element={<PrinterDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

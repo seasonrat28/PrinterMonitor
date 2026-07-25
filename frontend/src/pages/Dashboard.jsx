@@ -5,8 +5,8 @@ import { useFavorites } from '../hooks/useFavorites';
 import { AlertCircle, Server } from 'lucide-react';
 
 import SearchBar from '../components/SearchBar';
-import PrinterCard from '../components/PrinterCard';
-import PrinterTable from '../components/PrinterTable';
+import DashboardPrinterCard from '../components/DashboardPrinterCard';
+import DashboardPrinterTable from '../components/DashboardPrinterTable';
 
 const Dashboard = () => {
   const [printers, setPrinters] = useState([]);
@@ -167,7 +167,7 @@ const Dashboard = () => {
           </div>
         ) : filteredPrinters.length > 0 ? (
           viewMode === 'table' ? (
-            <PrinterTable 
+            <DashboardPrinterTable 
               printers={filteredPrinters}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
@@ -178,7 +178,7 @@ const Dashboard = () => {
             <div className="printers-grid">
               {filteredPrinters.map((printer, idx) => (
                 <div key={printer.ip} className="animate-fade-in-up" style={{ animationDelay: `${0.1 + (idx * 0.05)}s`, animationFillMode: 'both' }}>
-                  <PrinterCard 
+                  <DashboardPrinterCard 
                     ip={printer.ip}
                     data={printer.data}
                     isFavorite={isFavorite(printer.ip)}
